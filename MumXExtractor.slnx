@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="Win32" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MumXExtractor.vcxproj" Id="8e2a1c74-3b5d-4f0a-9c61-2d7e5a4b9f13" />
+</Solution>

@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        Platform: ['x86', 'x64', 'ARM64']
+    env:
+      output: ${{ format ('{0}{1}\Release', github.workspace, matrix.Platform != 'x86' && format ('\{0}', matrix.Platform) || '') }}
+      releasePath: ${{ format ('{0}\{1}.zip', github.workspace, matrix.Platform) }}
+
+    steps:
+    - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v3
+      with:
+        vs-prerelease: true
+        msbuild-architecture: x64
+
+    - name: ${{ format ('Build ({0})', matrix.Platform) }}
+      run: |
+          msbuild -maxCpuCount -multithreaded -t:Build -p:Configuration=Release -p:Platform=${{ matrix.Platform }}
+
+    - name: 'Upload artifact'
+      uses: actions/upload-artifact@main
+      with:
+        name: ${{ matrix.Platform }}
+        path: ${{ env.output }}
+        compression-level: 9
+
+    - name: 'Prepare Release'
+      if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+      run: |
+          Compress-Archive -Path ${{ env.output }}\* -DestinationPath ${{ env.releasePath }} 
+
+    - name: 'Create a Release'
+      if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+      uses: ncipollo/release-action@main
+      with:
+        allowUpdates	: true
+        tag: ${{ github.ref_name }}
+        artifacts: ${{ env.releasePath }}
